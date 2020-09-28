@@ -1,0 +1,14 @@
+curl -XPOST '10.3.254.118:9200/tdb/t_log_cust/_search?pretty' -d '
+{
+             "query": {
+               "match": {
+                   "insert_user_name" : {
+                       "query" : "欧孟婷"
+                   }
+               }
+             },
+             "sort": [
+                    {"LASTMODIFY_TIME": {"order": "desc"}}
+             ],
+             size:5
+}'
