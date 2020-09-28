@@ -1,0 +1,41 @@
+  1. go-mysql-elasticsearch@v0.0.0-20191111024017-d4e881274861/cmd/go-mysql-elasticsearch/main.go line 
+     添加dryrun 选项，用于debug binlog内容和es请求body
+     25  var dryrun = flag.Bool("dryrun", false, `show binlog info and es request body without real request~
+             eg: ./go-mysql-elasticsearch -config t.cnf -dryrun 1>es.debug 2>binlog.debug`)
+     81  cfg.Dry_run=*dryrun
+  2. go-mysql-elasticsearch@v0.0.0-20191111024017-d4e881274861/river/config.go 
+     添加 decimal类型支持，将decimal改成string 插入到es中，添加dryrun 配置文件解析
+     49   UseDecimal bool `toml:"use_decimal"`
+
+     50   Dry_run bool `toml:"dryrun"`
+  3. go-mysql-elasticsearch@v0.0.0-20191111024017-d4e881274861/river/river.go
+     newCanal -> 96 添加 > cfg.UseDecimal = r.c.UseDecimal
+  
+  4. go-mysql@v0.0.0-20190524062908-de6c3a84bcbe/canal/sync.go
+     修改121~127
+     if err != nil {
+                                par:=" TRIGGER "
+                                re,_:= regexp.Compile(par)
+                                if match := re.Match(e.Query);!match{
+                                   log.Errorf("parse query(%s) err %v", e.Query, err)
+                                   return errors.Trace(err)
+                                }
+                        }
+  
+  5.  go-mysql-elasticsearch@v0.0.0-20191111024017-d4e881274861/river/sync.go 
+      68~83:
+      if h.r.c.Dry_run{
+                 var dinfo []string 
+                 dinfo=append(dinfo,fmt.Sprintf("======>> parsed binlog Row event info : <<<============"))
+                 dinfo=append(dinfo,fmt.Sprintf("Table: %v\n",e.Table))
+                 dinfo=append(dinfo,fmt.Sprintf("Values:\n"))
+                 for _, rows := range e.Rows {
+                         dinfo=append(dinfo,fmt.Sprintf("---\n"))
+                         for j, d := range rows {
+                                 if _, ok := d.([]byte); ok {
+                                         dinfo=append(dinfo,fmt.Sprintf("   %d:%q\n", j, d)) 
+                                 } else {
+                                         dinfo=append(dinfo,fmt.Sprintf("   %d:%#v\n", j, d)) 
+                                 }   
+                         }   
+        }   
